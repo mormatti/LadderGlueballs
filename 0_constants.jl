@@ -1,48 +1,42 @@
 include("usings.jl")
 
-# Local scope
 let
 
-# Parameters to set
-reset = false
+# Defiing the local operators and constants
+constants = Dict()
+constants["ZZ3"] = Dict()
+constants["SU3"] = Dict()
+ZZ3 = constants["ZZ3"]
+SU3 = constants["SU3"]
 
-# Reading data
-locops = (JLD2.load("glueballs/data/0_constants.jld2"))["single_stored_object"]
+# Number of states in the local Hilbert space
+ZZ3["localdim"] = 3
+SU3["localdim"] = 3
 
-locops["ZZ3"] = reset ? Dict() : get!(locops, "ZZ3", Dict())  
-ZZ3 = locops["ZZ3"]
+# The identity operators
+ZZ3["idm"] = operator_identity(SparseMatrixCSC, 3)
+SU3["idm"] = operator_identity(SparseMatrixCSC, 3)
+ZZ3["I1"] = ZZ3["idm"]
+SU3["I1"] = SU3["idm"]
+ZZ3["I2"] = kron(ZZ3["idm"], ZZ3["idm"])
+SU3["I2"] = kron(SU3["idm"], SU3["idm"])
+ZZ3["I3"] = kron(ZZ3["idm"], ZZ3["idm"], ZZ3["idm"])
+SU3["I3"] = kron(SU3["idm"], SU3["idm"], SU3["idm"])
 
-locops["SU3"] = reset ? Dict() : get!(locops, "SU3", Dict())
-SU3 = locops["SU3"]
-
-# Local dimension
-ZZ3["localdim"] = d
-SU3["localdim"] = d
-
-# Identity matrix
-idm = operator_identity(SparseMatrixCSC, 3)
-ZZ3["I1"] = idm
-ZZ3["I2"] = kron(idm, idm)
-ZZ3["I3"] = kron(idm, idm, idm)
-SU3["I1"] = idm
-SU3["I2"] = kron(idm, idm)
-SU3["I3"] = kron(idm, idm, idm)
-
-# Local pure reflection
+# The reflection operators
 ZZ3["R2"] = operator_reflection(SparseMatrixCSC, 3, 2)
-ZZ3["R3"] = operator_reflection(SparseMatrixCSC, 3, 3)
 SU3["R2"] = operator_reflection(SparseMatrixCSC, 3, 2)
+ZZ3["R3"] = operator_reflection(SparseMatrixCSC, 3, 3)
 SU3["R3"] = operator_reflection(SparseMatrixCSC, 3, 3)
 
-# The cyclic supradiagonal local operator
-tau = spzeros(3, 3)
-tau[1, 2] = 1
-tau[2, 3] = 1
-tau[3, 1] = 1
-ZZ3["tau"] = tau
-SU3["tau"] = tau
+# The raising operator tau
+ZZ3["tau"] = spzeros(3, 3)
+ZZ3["tau"][1, 2] = 1
+ZZ3["tau"][2, 3] = 1
+ZZ3["tau"][3, 1] = 1
+SU3["tau"] = ZZ3["tau"]
 
-# The charge conjugation 1,2,3-local operator
+# The charge conjugation operator C
 cc = spzeros(3, 3)
 cc[1, 1] = 1
 cc[2, 3] = 1
@@ -54,46 +48,26 @@ SU3["C1"] = cc
 SU3["C2"] = kron(cc, cc)
 SU3["C3"] = kron(cc, cc, cc)
 
+# A shortcut for ketbra
 kb(n, m) = ketbra(n, m, 3)
 
-# Electric field (casimir) as a 2-local operator
-C2ZZ3(n) = 3^2 / π^2 * sin(π * n / 3)^2
-C2SU3(n) = 2 // 3 * (3 - n) * n
-casimirZZ3 = spzeros(3^2, 3^2)
-casimirSU3 = spzeros(3^2, 3^2)
-for n1 in 0:2
-    for n2 in 0:2
-        i1 = n1 + 1
-        i2 = n2 + 1
-        m = mod(n1 - n2, 0:2)
-        E2ZZ3 = C2ZZ3(n1) + C2ZZ3(n2) + C2ZZ3(m)
-        E2SU3 = C2SU3(n1) + C2SU3(n2) + C2SU3(m)
-        casimirZZ3 += E2ZZ3 * kron(kb(i1,i1), kb(i2,i2))
-        casimirSU3 += E2SU3 * kron(kb(i1,i1), kb(i2,i2))
-    end
-end
-ZZ3["Esq2"] = casimirZZ3
-SU3["Esq2"] = casimirSU3
+# diagmat (old version) = SparseMatrixCSC(Diagonal([0.0, 1.0, 1.0, 2.0, 2.0, 2.5, 2.0, 2.5, 2.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.5, 2.5, 3.0, 2.5, 1.0, 2.0, 2.0, 2.5, 2.5, 3.0, 2.0, 2.5, 2.0]))
+diagmat = SparseMatrixCSC(Diagonal([0, 0.5, 0.5, 3, 2.5, 3, 3, 3, 2.5, 0.5, 1, 1, 2.5, 2, 2.5, 3, 3, 2.5, 0.5, 1, 1, 3, 2.5, 3, 2.5, 2.5, 2]))
+ZZ3["Esq3"] = 27/(4*π^2) * diagmat
+SU3["Esq3"] = 4//3 * diagmat
 
-# Electric field (casimir) as a 3-local operator
-ZZ3["Esq3"] = 1/2 * kron(ZZ3["Esq2"], ZZ3["I1"]) + 1/2 * kron(ZZ3["I1"], ZZ3["Esq2"])
-SU3["Esq3"] = 1/2 * kron(SU3["Esq2"], SU3["I1"]) + 1/2 * kron(SU3["I1"], SU3["Esq2"])
-
-# Plaquette term for ZN
+# Plaquette term for Z_3
 ZZ3["Up"] = ZZ3["tau"]
 ZZ3["Up3"] = kron(ZZ3["I1"], ZZ3["tau"], ZZ3["I1"])
 
-# Diagonal D terms for SU(N)
+# Plaquette term for SU(3)
 Dg1 = Diagonal([1, 1/√3, 1/3])
 Dg2 = Diagonal([1, 1/3, 1/√3])
 Dg3 = Diagonal([1, 1/√3, 1/√3])
-
-# Plaquette term for ZN
 Up = kron(Dg1, kb(3,1), Dg1) + kron(Dg2, kb(1,2), Dg2) + kron(Dg3, kb(2,3), Dg3)
-
 SU3["Up"] = Up
 SU3["Up3"] = Up
 
-JLD2.save_object("glueballs/data/0_constants.jld2", locops)
+JLD2.save_object("data/constants.jld2", constants)
 
-end # End local scope
+end

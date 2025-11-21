@@ -1,0 +1,4 @@
+job_out/*
+data/*
+plots/*
+*.png

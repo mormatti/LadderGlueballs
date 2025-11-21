@@ -6,38 +6,39 @@ let
 # Parameters to set
 reset = false
 groups = ["ZZ3", "SU3"]
-λ_list = sort(unique(vcat([1//10, 3//10, 5//10, 7//10, 9//10], [a//30 for a in 1:29])))
-lengths = [11]
+# λ_list = sort(unique(vcat([1//10, 3//10, 5//10, 7//10, 9//10], [a//30 for a in 1:29])))
+λ_list = [1//10, 3//10, 5//10, 7//10, 9//10]
+lengths = [5, 7, 9, 11]
 nlevels = 50 # should be 30 or more
 
 # Reading data
-locops = (JLD2.load("glueballs/data/0_constants.jld2"))["single_stored_object"]
-smallsize = (JLD2.load("glueballs/data/1_smallsize.jld2"))["single_stored_object"]
-
-data_read
-data_write
+constants = (JLD2.load("data/constants.jld2"))["single_stored_object"]
+smallsize = (JLD2.load("data/smallsize.jld2"))["single_stored_object"]
 
 # Group loop
 for group in groups
+println("Processing group ", group)
 
 smallsize[group] = reset ? Dict() : get!(smallsize, group, Dict())
 
 # Coupling loop
 for λ ∈ λ_list
+println("Processing λ = ", λ)
 
 smallsize[group][λ] = reset ? Dict() : get!(smallsize[group], λ, Dict())
 
 # Small system size loop
 for l ∈ lengths
+println("Processing system size L = ", l)
 
 smallsize[group][λ][l] = reset ? Dict() : get!(smallsize[group][λ], l, Dict())
 dct = smallsize[group][λ][l]
 
 # Local operators
-dct["h"] = λ * locops[group]["Esq3"] - (1 - λ) * (locops[group]["Up3"] + locops[group]["Up3"]')
+dct["h"] = λ * constants[group]["Esq3"] - (1 - λ) * (constants[group]["Up3"] + constants[group]["Up3"]')
 
 # Operators
-dct["C"] = kron_power(SparseMatrixCSC(locops[group]["C1"]), l)
+dct["C"] = kron_power(SparseMatrixCSC(constants[group]["C1"]), l)
 dct["T"] = operator_translation(SparseMatrixCSC, d, l)
 dct["R"] = operator_reflection(SparseMatrixCSC, d, l) # The 180 deg rot, for this model is like that
 dct["H"] = summation_local(dct["h"], d, l; pbc = true)
@@ -91,6 +92,6 @@ end # coupling loop
 
 end # group loop
 
-JLD2.save_object("glueballs/data/1_smallsize.jld2", smallsize)
+JLD2.save_object("data/smallsize.jld2", smallsize)
 
 end # End local scope

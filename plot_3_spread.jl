@@ -9,7 +9,7 @@ lambdas = [a//30 for a in 1:29]
 lengths = [11]
 
 # Defining the plots
-legnd = Plots.plot(size = (100, 100), legend_column = 2, legend_foreground_color = :white, xlims=(0, 1), ylims=(0, 1), xaxis=false, yaxis=false, framestyle=:none, legend=:topleft, legend_font_halign = :left)
+legnd = Plots.plot(size = (100, 100), legend_column = 2, legend_foreground_color = :white, xlims = (0, 1), ylims = (0, 1), xaxis=false, yaxis=false, framestyle=:none, legend=:topleft, legend_font_halign = :left)
 
 # Define common marker settings
 commonmarkersettings = (marker = :circle, markersize = 2, markerstrokewidth = 1)

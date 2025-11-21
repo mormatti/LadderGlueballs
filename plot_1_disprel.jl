@@ -9,8 +9,8 @@ groups = ["ZZ3", "SU3"]
 ncols = length(λ_list)
 
 # Reading data
-locops = (JLD2.load("glueballs/data/0_constants.jld2"))["single_stored_object"]
-smallsize = (JLD2.load("glueballs/data/1_smallsize.jld2"))["single_stored_object"]
+constants = (JLD2.load("data/constants.jld2"))["single_stored_object"]
+smallsize = (JLD2.load("data/smallsize.jld2"))["single_stored_object"]
 
 # Group cycle
 for group in groups
@@ -128,7 +128,7 @@ for ii in 1:ncols
 end
 
 Plots.plot!(plt, size=(270,230), grid=true)
-Plots.savefig("glueballs/plots/disprel$(group).pdf")
+Plots.savefig("plots/disprel$(group).pdf")
 
 end # end group cycle
 

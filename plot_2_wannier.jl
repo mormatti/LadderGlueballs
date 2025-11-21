@@ -5,20 +5,28 @@ let
 
 # Parameters to set
 reset = false
-lambdas = [2//10, 5//10, 8//10]
+lambdas = [1//10, 5//10, 9//10]
 length = 11
 
-lambdalabels = [L"\lambda = \frac{1}{5}", L"\lambda = \frac{1}{2}", L"\lambda = \frac{4}{5}"]
+lambdalabels = [L"\lambda = \frac{1}{10}", L"\lambda = \frac{1}{2}", L"\lambda = \frac{9}{10}"]
 
-colorsZZ3band1 = [RGB(1.0 / a, 0.19 / a, 0.19 / a) for a in [1,1.5,10]]
-colorsZZ3band2 = [RGB(1.0 / a, 0.55 / a, 0.0 / a) for a in [1,1.5,10]]
-colorsSU3band1 = [RGB(0.12 / a, 0.56 / a, 1.0 / a) for a in [1,1.5,10]]
-colorsSU3band2 = [RGB(0.61 / a, 0.19 / a, 1.0 / a) for a in [1,1.5,10]]
+function colortochoose(G, B, a)
+    clr = bandcolor(G, B)
+    rc = red(clr)
+    gc = green(clr)
+    bc = blue(clr)
+    return RGB(rc / a, gc / a, bc / a)
+end
+
+colorsZZ3band1 = [colortochoose("ZZ3", "1", a) for a in [1,1.5,10]]
+colorsZZ3band2 = [colortochoose("ZZ3", "2", a) for a in [1,1.5,10]]
+colorsSU3band1 = [colortochoose("SU3", "1", a) for a in [1,1.5,10]]
+colorsSU3band2 = [colortochoose("SU3", "2", a) for a in [1,1.5,10]]
 
 # Reading data
 # constants = (JLD2.load("glueballs/data/0_constants.jld2"))["single_stored_object"]
 # smallsize = (JLD2.load("glueballs/data/1_smallsize.jld2"))["single_stored_object"]
-wannier = (JLD2.load("glueballs/data/2_wannier.jld2"))["single_stored_object"]
+wannier = (JLD2.load("data/wannier.jld2"))["single_stored_object"]
 
 plt = Plots.plot(layout=(2,2),
     size=(280,200),
@@ -69,6 +77,6 @@ Plots.scatter!(plt, legend = :topleft, marker = :square, markerstrokewidth = 0, 
 
 end # end lambda loop
 
-Plots.savefig("glueballs/plots/wanniers.pdf")
+Plots.savefig("plots/wanniers.pdf")
 
 end # end local scope
