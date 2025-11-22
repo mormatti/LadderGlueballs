@@ -15,12 +15,14 @@ using PGFPlotsX
 using Revise
 using Scattensor
 
+#=
 using Base.Threads
 println("Julia nthreads()         = ", nthreads())
 println("BLAS.get_num_threads()  = ", BLAS.get_num_threads())
 # opzionale ma utile: sincronizza BLAS con i thread Julia
 BLAS.set_num_threads(nthreads())
 println("BLAS threads after set  = ", BLAS.get_num_threads())
+=#
 
 PGFPlotsX.latexengine!(PGFPlotsX.PDFLATEX)  # or PGFPlotsX.LUALATEX
 PGFPlotsX.latexengine()                     # shows the current engine

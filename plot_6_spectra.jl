@@ -4,11 +4,11 @@ using FFTW
 gr()
 
 l = 11
-L = 51
+L = 101
 ℓ = 2
 
 smallsize = (JLD2.load("data/smallsize.jld2"))["single_stored_object"]
-cones = (JLD2.load("data/conesL$L.jld2"))["single_stored_object"]
+# cones = (JLD2.load("data/conesL$L.jld2"))["single_stored_object"]
 overlaps = (JLD2.load("data/overlaps.jld2"))["single_stored_object"]
 
 function zero_pad_center(A::AbstractArray, newsize::Tuple{Int,Int})
@@ -93,12 +93,12 @@ function plotdisprelsmall!(plt, subplot, G, λ, B)
     Elist = [energy(el) - centroid for el ∈ smallsize[G][λ][l]["band$B"]]
     dlt = (maximum(Elist) - minimum(Elist)) / 2
     ctst = (maximum(Elist) + minimum(Elist)) / 2
-    # ymin = ctst - 3 * dlt
-    # ymax = ctst + 3 * dlt
+    ymin = ctst - 3 * dlt
+    ymax = ctst + 3 * dlt
     energcentered(x) = energ(x) - centroid
     Klist = [momentum(el) for el ∈ smallsize[G][λ][l]["band$B"]]
     # Plots.plot!(plt, energcentered, linewidth = 1, ylims = [ymin, ymax], linestyle = :dash, color = :red, subplot = subplot)
-    Plots.scatter!(plt, Klist, Elist, color = :dodgerblue4, subplot = subplot)
+    Plots.scatter!(plt, Klist, Elist, xlims = [-π,π], ylims = [ymin, ymax], color = :dodgerblue4, subplot = subplot)
 end
 
 let
@@ -124,9 +124,9 @@ for G in ["ZZ3", "SU3"]
     for B in ["1", "2"]
         for λ in [1//10, 5//10, 9//10]
             indx += 1
-            plotspectra!(plt, indx, G, λ, B)
-            plotdisprels!(plt, indx, G, λ, B)
+            # plotspectra!(plt, indx, G, λ, B)
             plotdisprelsmall!(plt, indx, G, λ, B)
+            plotdisprels!(plt, indx, G, λ, B)
         end
     end
 end

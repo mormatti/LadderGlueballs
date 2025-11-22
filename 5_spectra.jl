@@ -4,8 +4,8 @@ let
 
 reset = false
 Lbig = 51
-groups = ["SU3"]
-lambdas = [9//10]
+groups = ["ZZ3", "SU3"]
+lambdas = [1//10, 5//10, 9//10]
 lengths = [11]
 bands = ["1", "2"]
 supporthalfs = [2]
@@ -16,7 +16,7 @@ smallsize = (JLD2.load("data/smallsize.jld2"))["single_stored_object"]
 wannier = (JLD2.load("data/wannier.jld2"))["single_stored_object"]
 vacua = (JLD2.load("data/biggroundstates.jld2"))["single_stored_object"]
 creators = (JLD2.load("data/creators.jld2"))["single_stored_object"]
-cones = (JLD2.load("data/conesL$Lbig.jld2"))["single_stored_object"]
+cones = Dict()
 
 for G in groups
 cones[G] = reset ? Dict() : get!(cones, G, Dict())
@@ -55,7 +55,7 @@ println("           Half-support: ", ℓ)
 
 thisdict = cones[G][λ][l][B][ℓ]
 
-creator = (JLD2.load("data/creators.jld2"))["single_stored_object"][G][λ][l][B][ℓ]["creator"]
+creator = (JLD2.load("data/creators.jld2"))["single_stored_object"][G][λ][l][B][ℓ]["unitarycreatormpo"]
 creatorlength = size(creator)[1]
 halfcs = Int(floor(creatorlength / 2))
 minx = halfcs + 1

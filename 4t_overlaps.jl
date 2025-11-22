@@ -3,14 +3,14 @@ include("usings.jl")
 let
 
 reset = false
-Lbig = 101
-groups = ["ZZ3", "SU3"]
-lambdas = [9//10]
+Lbig = 51
+groups = ["SU3"]
+lambdas = [5//10]
 lengths = [11]
-bands = ["1"]
-supporthalfs = [2]
+bands = ["1", "2"]
+supporthalfs = [0, 1, 2]
 cutoff = 1e-15
-maxdim = 100
+maxdim = 150
 
 # Reading data
 constants = (JLD2.load("data/constants.jld2"))["single_stored_object"]
@@ -38,21 +38,6 @@ H0mpo = mpo_from_matrix(Matrix(H0), d, cutoff, maxdim)
 Hmpo = summation_local(H0mpo, Lbig, pbc = false, cutoff = cutoff)
 replace_siteinds!(Hmpo, sitesL)
 
-#=
-if λ == 9//10
-    cutoff = 1e-15
-    maxdim = 50
-end
-if λ == 5//10
-    cutoff = 1e-10
-    maxdim = 70
-end
-if λ == 1//10
-    cutoff = 1e-10
-    maxdim = 100
-end
-=#
-
 for l in lengths
 overlaps[G][λ][l] = reset ? Dict() : get!(overlaps[G][λ], l, Dict())
 println("Chain length = ", l)
@@ -72,8 +57,8 @@ println("Halfsupport = ", ℓ)
 
 println("")
 println("Group: ", G, " λ = ", λ, " band: ", B)
-creator = (JLD2.load("data/creators.jld2"))["single_stored_object"][G][λ][l][B][ℓ]["creator"]
-creatorU = creator
+creator = (JLD2.load("data/creators.jld2"))["single_stored_object"][G][λ][l][B][ℓ]["creatormpo"]
+creatorU = (JLD2.load("data/creators.jld2"))["single_stored_object"][G][λ][l][B][ℓ]["unitarycreatormpo"]
 # sgn = (B == "1" ? 1 : -1)
 # creator = mpo_from_matrix(Matrix(constants[G]["Up3"] + sgn * constants[G]["Up3"]') * 1/sqrt(2), 3, cutoff, maxdim)
 

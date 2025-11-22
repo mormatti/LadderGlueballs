@@ -4,13 +4,13 @@ let
 
 # Parameters to set
 reset = false
-groups = ["ZZ3", "SU3"]
-lambdas = [1//10, 5//10, 9//10]
+groups = ["SU3"]
+lambdas = [5//10]
 lengths = [11]
 bands = ["1", "2"]
 supporthalfs = [0, 1, 2]
 cutoff = 1e-15
-maxdim = 100
+maxdim = 150
 
 # Reading data
 # constants = (JLD2.load("data/constants.jld2"))["single_stored_object"]
@@ -33,15 +33,15 @@ println()
 #=
 if λ == 9//10
     cutoff = 1e-15
-    maxdim = 50
+    maxdim = 100
 end
 if λ == 5//10
     cutoff = 1e-10
-    maxdim = 70
+    maxdim = 100
 end
 if λ == 1//10
     cutoff = 1e-10
-    maxdim = 100
+    maxdim = 150
 end
 =#
 
@@ -55,35 +55,52 @@ creators[G][λ][l][B] = reset ? Dict() : get!(creators[G][λ][l], B, Dict())
 println("Band number = ", B)
 println()
 
+# Pick the small groundstate and wannier and construct the matrix and mpo
+sitesl = siteinds(3, l)
+ωvector = wavefunction(smallsize[G][λ][l]["groundstate"])
+print("Converting ωvector to ωmps; ")
+ωmps = mps_from_vector(ωvector, 3, cutoff = cutoff)
+println("linkdims(ωmps) = ", linkdims(ωmps), "; ")
+replace_siteinds!(ωmps, sitesl)
+wvector = wannier[G][λ][l]["wannier$B"]
+print("Converting wvector to wmps; ")
+wmps = mps_from_vector(wvector, 3, cutoff = cutoff)
+println("linkdims(wmps) = ", linkdims(wmps), "; ")
+replace_siteinds!(wmps, sitesl)
+
 for ℓ in supporthalfs
 creators[G][λ][l][B][ℓ] = reset ? Dict() : get!(creators[G][λ][l][B], ℓ, Dict())
 thedict = creators[G][λ][l][B][ℓ]
 println("Halfsupport = ", ℓ)
+println()
 
 jc = Int((l + 1)/2)
 
-# Pick the small groundstate and wannier and construct the matrix and mpo
-sitesl = siteinds(3, l)
-ωvector = wavefunction(smallsize[G][λ][l]["groundstate"])
-ωmps = mps_from_vector(ωvector, 3, cutoff = cutoff)
-replace_siteinds!(ωmps, sitesl)
-wvector = wannier[G][λ][l]["wannier$B"]
-wmps = mps_from_vector(wvector, 3, cutoff = cutoff)
-replace_siteinds!(wmps, sitesl)
-
 # We define the A and the rho operators in matrix and mpo form
-Ampo = partial_trace(truncate(outer(wmps', ωmps), cutoff = cutoff, maxdim = maxdim), jc - ℓ, jc + ℓ)
-ρmpo  = partial_trace(truncate(outer(ωmps', ωmps), cutoff = cutoff, maxdim = maxdim), jc - ℓ, jc + ℓ)
+print("Ampo partial trace; ")
+# Ampo = partial_trace(truncate(outer(wmps', ωmps), cutoff = cutoff, maxdim = maxdim), jc - ℓ, jc + ℓ)
+Ampo = partial_trace(outer(wmps', ωmps), jc - ℓ, jc + ℓ)
+print("linkdims(Ampo) = ", linkdims(Ampo), "; ")
+print("ρmpo partial trace; ")
+# ρmpo  = partial_trace(truncate(outer(ωmps', ωmps), cutoff = cutoff, maxdim = maxdim), jc - ℓ, jc + ℓ)
+ρmpo  = partial_trace(outer(ωmps', ωmps), jc - ℓ, jc + ℓ)
+print("linkdims(ρmpo) = ", linkdims(ρmpo), "; ")
+print("Converting Ampo to Amatrix; ")
 Amatrix = matrix_from_mpo(Ampo)
+print("Converting ρmpo to ρmatrix; ")
 ρmatrix = matrix_from_mpo(ρmpo)
 
 # Method 1: not imposing unitarity
-creatormatrix = Amatrix * pinv(ρmatrix, 1e-10)
+print("Computing the product with pseudoinverse; ")
+creatormatrix = Amatrix * pinv(ρmatrix, cutoff)
 thedict["creatormatrix"] = creatormatrix
-creatormpo = mpo_from_matrix(creatormatrix, d, cutoff, maxdim)
-truncate!(creatormpo, cutoff = cutoff, maxdim = maxdim)
+print("Converting creatormatrix to creatormpo; ")
+creatormpo = mpo_from_matrix(creatormatrix, 3, cutoff, maxdim)
+print("Truncating creatormpo; ")
+# truncate!(creatormpo, cutoff = cutoff, maxdim = maxdim)
 thedict["creatormpo"] = creatormpo
 # tests
+print("Computing fidelity; ")
 latspace = Int((l - (2ℓ+1))/2)
 extendedcreatormpo = insert_local(latspace, creatormpo, latspace)
 replace_siteinds!(extendedcreatormpo, sitesl)
@@ -96,15 +113,19 @@ extendedcreatormpo /= normcreated
 fidelity = abs(inner(wmps', extendedcreatormpo, ωmps))
 println("Fidelity = ", fidelity)
 thedict["fidelity"] = fidelity
+println()
 
 # Method 2: imposing unitarity
+print("Computing the svd step; ")
 Svd = svd(matrix_from_mpo(Ampo))
 creatormatrix = Svd.U * Svd.Vt
 thedict["unitarycreatormatrix"] = creatormatrix
+print("Converting creatormatrix to creatormpo; ")
 creatormpo = mpo_from_matrix(creatormatrix, 3, cutoff, maxdim)
-truncate!(creatormpo, cutoff = cutoff, maxdim = maxdim)
+# truncate!(creatormpo, cutoff = cutoff, maxdim = maxdim)
 thedict["unitarycreatormpo"] = creatormpo
 # tests
+print("Performing tests and computing fidelity; ")
 svdsum = sum(Svd.S)
 println("Sum of svd = ", svdsum)
 thedict["svdsum"] = svdsum
@@ -122,15 +143,20 @@ fidelity = abs(inner(wmps', extendedcreatormpo, ωmps))
 println("Fidelity = ", fidelity)
 thedict["unitaryfidelity"] = fidelity
 
+println()
+println()
+
 # Creating the projectors of vacuum and of the particle
+#=
 Pmpo = partial_trace(truncate(outer(ωmps', ωmps), cutoff = cutoff, maxdim = maxdim), jc - ℓ, jc + ℓ)
 Pmatrix = matrix_from_mpo(Pmpo)
-truncate!(Pmpo, cutoff = cutoff)
+truncate!(Pmpo, cutoff = cutoff, maxdim = maxdim)
 thedict["vacuumproj"] = Pmpo
 Nmpo = partial_trace(truncate(outer(wmps', wmps), cutoff = cutoff, maxdim = maxdim), jc - ℓ, jc + ℓ)
 Nmatrix = matrix_from_mpo(Nmpo)
-truncate!(Nmpo, cutoff = cutoff)
+truncate!(Nmpo, cutoff = cutoff, maxdim = maxdim)
 thedict["numberop"] = Nmpo
+=#
 
 end # end supporthalf loop
 
